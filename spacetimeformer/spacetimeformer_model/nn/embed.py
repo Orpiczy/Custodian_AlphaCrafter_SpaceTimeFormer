@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 
 
-import spacetimeformer as stf
+import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 from .extra_layers import ConvBlock, Flatten
 

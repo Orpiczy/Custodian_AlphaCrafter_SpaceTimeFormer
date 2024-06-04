@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 import numpy as np
 
-import spacetimeformer as stf
+import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 
 class Forecaster(pl.LightningModule, ABC):
@@ -99,6 +99,12 @@ class Forecaster(pl.LightningModule, ABC):
             num = 2.0 * abs(preds - true)
             den = abs(preds.detach()) + abs(true) + 1e-5
             loss = 100.0 * (mask * (num / den)).sum() / max(mask.sum(), 1)
+        elif self.loss == "mse_with_sign_penalty":
+            sign_penalty = ((torch.sign(true) != torch.sign(preds)) & (mask > 0)).float().mean() * 100
+            mse = (mask * (true - preds)).square().sum() / max(mask.sum(), 1)
+            loss = sign_penalty + mse
+        elif self.loss == "sign_penalty":
+            loss = ((torch.sign(true) != torch.sign(preds)) & (mask > 0)).float().mean() * 100
         else:
             raise ValueError(f"Unrecognized Loss Function : {self.loss}")
         return loss
@@ -230,6 +236,8 @@ class Forecaster(pl.LightningModule, ABC):
             "smape": stf.eval_stats.smape(scaled_true, scaled_pred) / adj,
             "norm_mae": stf.eval_stats.mae(true, pred) / adj,
             "norm_mse": stf.eval_stats.mse(true, pred) / adj,
+            "mse_with_sign_penalty": stf.eval_stats.mse_with_sign_penalty(true, pred) / adj,
+            "sign_pred_failure_rate": stf.eval_stats.sign_error(true, pred)
         }
         return stats
 

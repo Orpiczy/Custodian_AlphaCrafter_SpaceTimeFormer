@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 import torchmetrics
 
-import spacetimeformer as stf
+import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 
 class Spacetimeformer_Forecaster(stf.Forecaster):
@@ -173,9 +173,7 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
         return {"output_attn": False}
 
     def step(self, batch: Tuple[torch.Tensor], train: bool):
-        kwargs = (
-            self.train_step_forward_kwargs if train else self.eval_step_forward_kwargs
-        )
+        kwargs = self.train_step_forward_kwargs if train else self.eval_step_forward_kwargs
 
         time_mask = self.time_masked_idx if train else None
 
@@ -206,9 +204,7 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
         stats["acc"] = loss_dict["acc"]
         return stats
 
-    def classification_loss(
-        self, logits: torch.Tensor, labels: torch.Tensor
-    ) -> Tuple[torch.Tensor]:
+    def classification_loss(self, logits: torch.Tensor, labels: torch.Tensor) -> Tuple[torch.Tensor]:
 
         labels = labels.view(-1).to(logits.device)
         d_y = labels.max() + 1
@@ -225,20 +221,14 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
     def compute_loss(self, batch, time_mask=None, forward_kwargs={}):
         x_c, y_c, x_t, y_t = batch
 
-        forecast_out, recon_out, (logits, labels) = self(
-            x_c, y_c, x_t, y_t, **forward_kwargs
-        )
+        forecast_out, recon_out, (logits, labels) = self(x_c, y_c, x_t, y_t, **forward_kwargs)
 
         # forecast (target seq prediction) loss
-        forecast_loss, forecast_mask = self.forecasting_loss(
-            outputs=forecast_out, y_t=y_t, time_mask=time_mask
-        )
+        forecast_loss, forecast_mask = self.forecasting_loss(outputs=forecast_out, y_t=y_t, time_mask=time_mask)
 
         if self.recon_loss_imp > 0:
             # reconstruction (masked? context seq prediction) loss
-            recon_loss, recon_mask = self.forecasting_loss(
-                outputs=recon_out, y_t=y_c, time_mask=None
-            )
+            recon_loss, recon_mask = self.forecasting_loss(outputs=recon_out, y_t=y_c, time_mask=None)
         else:
             recon_loss, recon_mask = -1.0, 0.0
 
@@ -278,9 +268,7 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
         dec_y = torch.zeros_like(y_t).to(self.device)
         if self.start_token_len > 0:
             # add "start token" from informer. not really needed anymore...
-            dec_y = torch.cat((y_c[:, -self.start_token_len :, :], dec_y), dim=1).to(
-                self.device
-            )
+            dec_y = torch.cat((y_c[:, -self.start_token_len :, :], dec_y), dim=1).to(self.device)
             dec_x = torch.cat((x_c[:, -self.start_token_len :, :], dec_x), dim=1)
 
         forecast_output, recon_output, (logits, labels), attn = self.spacetimeformer(
@@ -326,7 +314,14 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
             patience=3,
             factor=self.decay_factor,
         )
-        return [self.optimizer], [self.scheduler]
+        # return [self.optimizer], [self.scheduler]
+        return {
+            "optimizer": self.optimizer,
+            "lr_scheduler": {
+                "scheduler": self.scheduler,
+                "monitor": "val/loss",  # replace 'valid_loss' with the metric your model should monitor
+            },
+        }
 
     @classmethod
     def add_cli(self, parser):
@@ -337,9 +332,7 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
             default=0,
             help="Length of decoder start token. Adds this many of the final context points to the start of the target sequence.",
         )
-        parser.add_argument(
-            "--d_model", type=int, default=200, help="Transformer embedding dimension."
-        )
+        parser.add_argument("--d_model", type=int, default=200, help="Transformer embedding dimension.")
         parser.add_argument(
             "--d_qk",
             type=int,
@@ -350,15 +343,9 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
             type=int,
             default=200,
         )
-        parser.add_argument(
-            "--n_heads", type=int, default=4, help="Number of self-attention heads."
-        )
-        parser.add_argument(
-            "--enc_layers", type=int, default=3, help="Transformer encoder layers."
-        )
-        parser.add_argument(
-            "--dec_layers", type=int, default=3, help="Transformer decoder layers."
-        )
+        parser.add_argument("--n_heads", type=int, default=4, help="Number of self-attention heads.")
+        parser.add_argument("--enc_layers", type=int, default=3, help="Transformer encoder layers.")
+        parser.add_argument("--dec_layers", type=int, default=3, help="Transformer decoder layers.")
         parser.add_argument(
             "--d_ff",
             type=int,
@@ -459,18 +446,14 @@ class Spacetimeformer_Forecaster(stf.Forecaster):
             choices=["layer", "batch", "scale", "power", "none"],
             default="batch",
         )
-        parser.add_argument(
-            "--init_lr", type=float, default=1e-10, help="Initial learning rate."
-        )
+        parser.add_argument("--init_lr", type=float, default=1e-10, help="Initial learning rate.")
         parser.add_argument(
             "--base_lr",
             type=float,
             default=5e-4,
             help="Base/peak LR. The LR is annealed to this value from --init_lr over --warmup_steps training steps.",
         )
-        parser.add_argument(
-            "--warmup_steps", type=int, default=0, help="LR anneal steps."
-        )
+        parser.add_argument("--warmup_steps", type=int, default=0, help="LR anneal steps.")
         parser.add_argument(
             "--decay_factor",
             type=float,

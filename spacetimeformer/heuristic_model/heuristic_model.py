@@ -3,7 +3,7 @@ from torch import nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 
-import spacetimeformer as stf
+import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 
 class Heuristic_Forecaster(stf.Forecaster):

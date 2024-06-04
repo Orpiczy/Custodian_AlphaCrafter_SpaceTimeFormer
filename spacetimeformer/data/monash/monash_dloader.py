@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 
-import spacetimeformer as stf
+import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 
 def convert_tsf_to_dataframe(

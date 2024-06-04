@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from spacetimeformer.data import CSVTimeSeries
+from app.src.models.external.spacetimeformer.spacetimeformer.data import CSVTimeSeries
 
 
 class SyntheticData(CSVTimeSeries):

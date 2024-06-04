@@ -8,7 +8,7 @@ import uuid
 import pytorch_lightning as pl
 import torch
 
-import spacetimeformer as stf
+import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 _MODELS = ["spacetimeformer", "mtgnn", "heuristic", "lstm", "lstnet", "linear", "s4"]
 
@@ -192,6 +192,11 @@ def create_model(config):
         x_dim = 2
         yc_dim = 862
         yt_dim = 862
+    elif config.dset == "manual":
+        x_dim = len(config.time_features)
+        yc_dim = len(config.target_cols)
+        yt_dim = len(config.target_cols) # each target has separate time feature
+
     assert x_dim is not None
     assert yc_dim is not None
     assert yt_dim is not None
@@ -647,15 +652,30 @@ def create_dset(config):
             time_col_name = "FakeTime"
             time_features = ["month", "day"]
 
-        dset = stf.data.CSVTimeSeries(
-            data_path=data_path,
-            target_cols=target_cols,
-            ignore_cols="all",
-            time_col_name=time_col_name,
-            time_features=time_features,
-            val_split=0.2,
-            test_split=0.2,
-        )
+        if config.dset == "manual":
+            # CUSTOM DSET, ALL ARGS ARE PASSED IN
+            dset = stf.data.CSVTimeSeries(
+                raw_df=config.raw_df,
+                target_cols=config.target_cols,
+                ignore_cols="all",
+                time_col_name=config.time_col_name,
+                time_features=config.time_features,
+                val_split=config.val_split,
+                test_split=config.test_split,
+            )
+        else:
+            dset = stf.data.CSVTimeSeries(
+                data_path=data_path,
+                target_cols=target_cols,
+                ignore_cols="all",
+                time_col_name=time_col_name,
+                time_features=time_features,
+                val_split=0.2,
+                test_split=0.2,
+            )
+
+
+
         DATA_MODULE = stf.data.DataModule(
             datasetCls=stf.data.CSVTorchDset,
             dataset_kwargs={
@@ -666,7 +686,7 @@ def create_dset(config):
             },
             batch_size=config.batch_size,
             workers=config.workers,
-            overfit=args.overfit,
+            overfit=config.overfit,
         )
         INV_SCALER = dset.reverse_scaling
         SCALER = dset.apply_scaling
@@ -737,29 +757,29 @@ def main(args):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    if args.wandb:
-        import wandb
+    # if args.wandb:
+    #     import wandb
 
-        project = os.getenv("STF_WANDB_PROJ")
-        entity = os.getenv("STF_WANDB_ACCT")
-        assert (
-            project is not None and entity is not None
-        ), "Please set environment variables `STF_WANDB_ACCT` and `STF_WANDB_PROJ` with \n\
-            your wandb user/organization name and project title, respectively."
-        experiment = wandb.init(
-            project=project,
-            entity=entity,
-            config=args,
-            dir=log_dir,
-            reinit=True,
-        )
-        config = wandb.config
-        wandb.run.name = args.run_name
-        wandb.run.save()
-        logger = pl.loggers.WandbLogger(
-            experiment=experiment,
-            save_dir=log_dir,
-        )
+    #     project = os.getenv("STF_WANDB_PROJ")
+    #     entity = os.getenv("STF_WANDB_ACCT")
+    #     assert (
+    #         project is not None and entity is not None
+    #     ), "Please set environment variables `STF_WANDB_ACCT` and `STF_WANDB_PROJ` with \n\
+    #         your wandb user/organization name and project title, respectively."
+    #     experiment = wandb.init(
+    #         project=project,
+    #         entity=entity,
+    #         config=args,
+    #         dir=log_dir,
+    #         reinit=True,
+    #     )
+    #     config = wandb.config
+    #     wandb.run.name = args.run_name
+    #     wandb.run.save()
+    #     logger = pl.loggers.WandbLogger(
+    #         experiment=experiment,
+    #         save_dir=log_dir,
+    #     )
 
     # Dset
     (
@@ -782,49 +802,49 @@ def main(args):
 
     # Callbacks
     callbacks = create_callbacks(args, save_dir=log_dir)
-    test_samples = next(iter(data_module.test_dataloader()))
+    # test_samples = next(iter(data_module.test_dataloader()))
 
-    if args.wandb and args.plot:
-        callbacks.append(
-            stf.plot.PredictionPlotterCallback(
-                test_samples,
-                var_idxs=plot_var_idxs,
-                var_names=plot_var_names,
-                pad_val=pad_val,
-                total_samples=min(args.plot_samples, args.batch_size),
-            )
-        )
+    # if args.wandb and args.plot:
+    #     callbacks.append(
+    #         stf.plot.PredictionPlotterCallback(
+    #             test_samples,
+    #             var_idxs=plot_var_idxs,
+    #             var_names=plot_var_names,
+    #             pad_val=pad_val,
+    #             total_samples=min(args.plot_samples, args.batch_size),
+    #         )
+    #     )
 
-    if args.wandb and args.dset in ["mnist", "cifar"] and args.plot:
-        callbacks.append(
-            stf.plot.ImageCompletionCallback(
-                test_samples,
-                total_samples=min(16, args.batch_size),
-                mode="left-right" if config.dset == "mnist" else "flat",
-            )
-        )
+    # if args.wandb and args.dset in ["mnist", "cifar"] and args.plot:
+    #     callbacks.append(
+    #         stf.plot.ImageCompletionCallback(
+    #             test_samples,
+    #             total_samples=min(16, args.batch_size),
+    #             mode="left-right" if config.dset == "mnist" else "flat",
+    #         )
+    #     )
 
-    if args.wandb and args.dset == "copy" and args.plot:
-        callbacks.append(
-            stf.plot.CopyTaskCallback(
-                test_samples,
-                total_samples=min(16, args.batch_size),
-            )
-        )
+    # if args.wandb and args.dset == "copy" and args.plot:
+    #     callbacks.append(
+    #         stf.plot.CopyTaskCallback(
+    #             test_samples,
+    #             total_samples=min(16, args.batch_size),
+    #         )
+    #     )
 
-    if args.wandb and args.model == "spacetimeformer" and args.attn_plot:
+    # if args.wandb and args.model == "spacetimeformer" and args.attn_plot:
 
-        callbacks.append(
-            stf.plot.AttentionMatrixCallback(
-                test_samples,
-                layer=0,
-                total_samples=min(16, args.batch_size),
-            )
-        )
+    #     callbacks.append(
+    #         stf.plot.AttentionMatrixCallback(
+    #             test_samples,
+    #             layer=0,
+    #             total_samples=min(16, args.batch_size),
+    #         )
+    #     )
 
-    if args.wandb:
-        config.update(args)
-        logger.log_hyperparams(config)
+    # if args.wandb:
+    #     config.update(args)
+    #     logger.log_hyperparams(config)
 
     if args.val_check_interval <= 1.0:
         val_control = {"val_check_interval": args.val_check_interval}
@@ -834,7 +854,8 @@ def main(args):
     trainer = pl.Trainer(
         gpus=args.gpus,
         callbacks=callbacks,
-        logger=logger if args.wandb else None,
+        # logger=logger if args.wandb else None,
+        logger=None,
         accelerator="dp",
         gradient_clip_val=args.grad_clip_norm,
         gradient_clip_algorithm="norm",
@@ -856,8 +877,8 @@ def main(args):
     # xc, yc, xt, _ = test_samples
     # yt_pred = forecaster.predict(xc, yc, xt)
 
-    if args.wandb:
-        experiment.finish()
+    # if args.wandb:
+    #     experiment.finish()
 
 
 if __name__ == "__main__":

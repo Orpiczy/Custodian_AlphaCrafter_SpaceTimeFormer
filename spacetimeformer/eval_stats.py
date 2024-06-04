@@ -46,3 +46,31 @@ def smape(actual: np.ndarray, predicted: np.ndarray):
         * np.abs(actual - predicted)
         / ((np.abs(actual) + np.abs(predicted)) + EPSILON)
     )
+
+def mse_with_sign_penalty(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Custom loss function that penalizes wrong sign predictions more heavily.
+
+    Parameters:
+    actual (np.ndarray): True labels.
+    predicted (np.ndarray): Predicted labels.
+
+    Returns:
+    np.ndarray: Loss value.
+    """
+    mse_penalty = mse(actual, predicted)
+    sign_penalty = sign_error(actual, predicted)
+    return mse_penalty + sign_penalty
+
+def sign_error(actual: np.ndarray, predicted: np.ndarray):
+    """
+    Custom metric that calculates the failure rate of sign predictions.
+
+    Parameters:
+    actual (np.ndarray): True labels.
+    predicted (np.ndarray): Predicted labels.
+
+    Returns:
+    np.ndarray: Loss value.
+    """
+    return ((np.sign(actual) != np.sign(predicted))).mean() * 100
