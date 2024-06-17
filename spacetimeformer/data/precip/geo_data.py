@@ -1,10 +1,11 @@
-from netCDF4 import Dataset as NCDFDataset
-import os
-import torch
-from typing import Tuple
-import random
-import numpy as np
 import glob
+import os
+import random
+from typing import Tuple
+
+import numpy as np
+import torch
+from netCDF4 import Dataset as NCDFDataset
 from torch.utils.data import Dataset as TorchDataset
 
 
@@ -22,14 +23,10 @@ class GeoDset:
             data.append(dset[var][:].data)
         data = np.concatenate(data, axis=0)
         self.fill_value = dset[var][:].fill_value
-        self.valid_locs = [
-            loc for loc in zip(*np.where((data != self.fill_value).all(0)))
-        ]
+        self.valid_locs = [loc for loc in zip(*np.where((data != self.fill_value).all(0)))]
 
         # train/val/test split
-        assert (
-            abs(sum(train_val_test) - 1.0) < 1e-3
-        ), "Train/Val/Test Split should sum to 1.0"
+        assert abs(sum(train_val_test) - 1.0) < 1e-3, "Train/Val/Test Split should sum to 1.0"
         train_split, val_split, test_split = train_val_test
         time = len(data)
         train_idx = round(time * train_split)
@@ -53,9 +50,7 @@ class GeoDset:
 
     @classmethod
     def add_cli(self, parser):
-        parser.add_argument(
-            "--dset_dir", type=str, default="./data/usgs_precipitation/"
-        )
+        parser.add_argument("--dset_dir", type=str, default="./data/usgs_precipitation/")
 
 
 class StationGridDset(TorchDataset):
@@ -76,17 +71,13 @@ class StationGridDset(TorchDataset):
         else:
             self.data = dset.test_data
 
-        self._start_points = [
-            i for i in range(0, len(self.data) - context_points - target_points)
-        ]
+        self._start_points = [i for i in range(0, len(self.data) - context_points - target_points)]
         random.shuffle(self._start_points)
         self.context_points = context_points
         self.target_points = target_points
 
         days = (torch.arange(0, len(self.data)).unsqueeze(-1) % 364).float()
-        years = torch.round(
-            (torch.arange(0, len(self.data)).unsqueeze(-1).float() / 364)
-        )
+        years = torch.round((torch.arange(0, len(self.data)).unsqueeze(-1).float() / 364))
         years /= years.max()
         self.timestamps = torch.cat((years, days), dim=-1)
 

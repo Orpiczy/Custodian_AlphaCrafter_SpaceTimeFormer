@@ -1,9 +1,9 @@
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 from .linear_ar import LinearModel
 
@@ -36,9 +36,7 @@ class Linear_Forecaster(stf.Forecaster):
             use_seasonal_decomp=use_seasonal_decomp,
         )
 
-        self.model = LinearModel(
-            context_points, shared_weights=linear_shared_weights, d_yt=d_yt
-        )
+        self.model = LinearModel(context_points, shared_weights=linear_shared_weights, d_yt=d_yt)
 
     @property
     def eval_step_forward_kwargs(self):

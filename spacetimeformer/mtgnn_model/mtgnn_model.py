@@ -1,11 +1,11 @@
 from typing import List
 
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 try:
     from torch_geometric_temporal.nn import MTGNN
@@ -55,9 +55,7 @@ class MTGNN_Forecaster(stf.Forecaster):
         use_revin: bool = False,
         use_seasonal_decomp: bool = False,
     ):
-        assert (
-            d_yc == d_yt
-        ), "MTGNN requires the same number of context and target variables"
+        assert d_yc == d_yt, "MTGNN requires the same number of context and target variables"
         super().__init__(
             d_x=d_x,
             d_yc=d_yc,

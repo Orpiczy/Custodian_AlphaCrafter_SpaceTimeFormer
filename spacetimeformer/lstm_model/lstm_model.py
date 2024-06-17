@@ -1,11 +1,11 @@
 import random
 
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 
 class LSTM_Encoder(nn.Module):
@@ -20,9 +20,7 @@ class LSTM_Encoder(nn.Module):
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.n_layers = n_layers
-        self.lstm = nn.LSTM(
-            input_dim, hidden_dim, n_layers, dropout=dropout, batch_first=True
-        )
+        self.lstm = nn.LSTM(input_dim, hidden_dim, n_layers, dropout=dropout, batch_first=True)
 
     def forward(self, x_context: torch.Tensor):
         outputs, (hidden, cell) = self.lstm(x_context)
@@ -41,9 +39,7 @@ class LSTM_Decoder(nn.Module):
         super().__init__()
         self.output_dim = output_dim
         self.hidden_dim = hidden_dim
-        self.lstm = nn.LSTM(
-            input_dim, hidden_dim, n_layers, dropout=dropout, batch_first=True
-        )
+        self.lstm = nn.LSTM(input_dim, hidden_dim, n_layers, dropout=dropout, batch_first=True)
         self.fc = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x_t, hidden, cell):
@@ -81,21 +77,13 @@ class LSTM_Seq2Seq(nn.Module):
         merged_context = self._merge(x_context, y_context)
         hidden, cell = self.encoder(merged_context)
 
-        decoder_input = (
-            self._merge(x_context[:, -1], torch.zeros_like(y_target[:, 0]))
-            .unsqueeze(1)
-            .to(y_context.device)
-        )
+        decoder_input = self._merge(x_context[:, -1], torch.zeros_like(y_target[:, 0])).unsqueeze(1).to(y_context.device)
 
         for t in range(0, pred_len):
             output, hidden, cell = self.decoder(decoder_input, hidden, cell)
             outputs[:, t] = output.squeeze(1)
 
-            decoder_y = (
-                y_target[:, t].unsqueeze(1)
-                if random.random() < teacher_forcing_prob
-                else output
-            )
+            decoder_y = y_target[:, t].unsqueeze(1) if random.random() < teacher_forcing_prob else output
             decoder_input = self._merge(x_target[:, t].unsqueeze(1), decoder_y)
         return outputs
 

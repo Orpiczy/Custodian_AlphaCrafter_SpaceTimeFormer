@@ -1,17 +1,17 @@
-from dataclasses import dataclass
-import random
-import os
 import glob
+import os
+import random
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from distutils.util import strtobool
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import torch
-from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
+from torch.utils.data import Dataset
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 
 def convert_tsf_to_dataframe(
@@ -41,17 +41,13 @@ def convert_tsf_to_dataframe(
                     if not line.startswith("@data"):
                         line_content = line.split(" ")
                         if line.startswith("@attribute"):
-                            if (
-                                len(line_content) != 3
-                            ):  # Attributes have both name and type
+                            if len(line_content) != 3:  # Attributes have both name and type
                                 raise Exception("Invalid meta-data specification.")
 
                             col_names.append(line_content[1])
                             col_types.append(line_content[2])
                         else:
-                            if (
-                                len(line_content) != 2
-                            ):  # Other meta-data have only values
+                            if len(line_content) != 2:  # Other meta-data have only values
                                 raise Exception("Invalid meta-data specification.")
 
                             if line.startswith("@frequency"):
@@ -59,24 +55,18 @@ def convert_tsf_to_dataframe(
                             elif line.startswith("@horizon"):
                                 forecast_horizon = int(line_content[1])
                             elif line.startswith("@missing"):
-                                contain_missing_values = bool(
-                                    strtobool(line_content[1])
-                                )
+                                contain_missing_values = bool(strtobool(line_content[1]))
                             elif line.startswith("@equallength"):
                                 contain_equal_length = bool(strtobool(line_content[1]))
 
                     else:
                         if len(col_names) == 0:
-                            raise Exception(
-                                "Missing attribute section. Attribute section must come before data."
-                            )
+                            raise Exception("Missing attribute section. Attribute section must come before data.")
 
                         found_data_tag = True
                 elif not line.startswith("#"):
                     if len(col_names) == 0:
-                        raise Exception(
-                            "Missing attribute section. Attribute section must come before data."
-                        )
+                        raise Exception("Missing attribute section. Attribute section must come before data.")
                     elif not found_data_tag:
                         raise Exception("Missing @data tag.")
                     else:
@@ -109,9 +99,7 @@ def convert_tsf_to_dataframe(
                             else:
                                 numeric_series.append(float(val))
 
-                        if numeric_series.count(replace_missing_vals_with) == len(
-                            numeric_series
-                        ):
+                        if numeric_series.count(replace_missing_vals_with) == len(numeric_series):
                             raise Exception(
                                 "All series values are missing. A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series."
                             )
@@ -125,9 +113,7 @@ def convert_tsf_to_dataframe(
                             elif col_types[i] == "string":
                                 att_val = str(full_info[i])
                             elif col_types[i] == "date":
-                                att_val = datetime.strptime(
-                                    full_info[i], "%Y-%m-%d %H-%M-%S"
-                                )
+                                att_val = datetime.strptime(full_info[i], "%Y-%m-%d %H-%M-%S")
                             else:
                                 raise Exception(
                                     "Invalid attribute type."
@@ -182,9 +168,7 @@ class TSF_Data:
         return len(self.data)
 
     def __getitem__(self, i):
-        assert i < len(
-            self
-        ), f"series index {i} out of range for TSF dataset with length {len(self)}"
+        assert i < len(self), f"series index {i} out of range for TSF dataset with length {len(self)}"
         y = self.data.iloc[i].to_numpy()
 
         current_time = datetime(year=1, month=1, day=1, hour=0, minute=0, second=0)
@@ -329,9 +313,7 @@ class MonashDset:
     def add_cli(self, parser):
         parser.add_argument("--max_len", type=int, default=1000)
         parser.add_argument("--include", type=str, nargs="+", default="all")
-        parser.add_argument(
-            "--root_dir", type=str, default="/dccstor/tst03/datasets/monash/"
-        )
+        parser.add_argument("--root_dir", type=str, default="/dccstor/tst03/datasets/monash/")
 
 
 class MetaMonashDset(Dataset):
@@ -375,25 +357,19 @@ def load_monash_dsets(root_dir, max_len, include=["all"]):
 
     if check("dominick"):
         dominick_raw = TSF_Data("dominick_dataset", root_dir=root_dir)
-        dominick = MonashDset(
-            dominick_raw, horizon=8, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        dominick = MonashDset(dominick_raw, horizon=8, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(dominick)
 
     if check("nn5"):
         # checked
         nn5_raw = TSF_Data("nn5_daily_dataset_with_missing_values", root_dir=root_dir)
-        nn5 = MonashDset(
-            nn5_raw, horizon=30, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        nn5 = MonashDset(nn5_raw, horizon=30, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(nn5)
 
     if check("cif"):
         # checked
         cif_raw = TSF_Data("cif_2016_dataset", root_dir=root_dir)
-        cif = MonashDset(
-            cif_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        cif = MonashDset(cif_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(cif)
 
     """
@@ -406,20 +382,14 @@ def load_monash_dsets(root_dir, max_len, include=["all"]):
     if check("rideshare"):
         # checked
         # they try to use 168 horizon in the paper but this data is too short for our setup
-        rideshare_raw = TSF_Data(
-            "rideshare_dataset_with_missing_values", root_dir=root_dir
-        )
-        rideshare = MonashDset(
-            rideshare_raw, horizon=20, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        rideshare_raw = TSF_Data("rideshare_dataset_with_missing_values", root_dir=root_dir)
+        rideshare = MonashDset(rideshare_raw, horizon=20, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(rideshare)
 
     if check("tourism"):
         # checked
         tourism_raw = TSF_Data("tourism_monthly_dataset", root_dir=root_dir)
-        tourism = MonashDset(
-            tourism_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        tourism = MonashDset(tourism_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(tourism)
 
     if check("m3"):
@@ -431,9 +401,7 @@ def load_monash_dsets(root_dir, max_len, include=["all"]):
             ("yearly", 6),
         ]:
             m3_raw = TSF_Data(f"m3_{freq}_dataset", root_dir=root_dir)
-            m3 = MonashDset(
-                m3_raw, horizon=horizon, max_length=max_len, scale=PositiveZeroOneLog()
-            )
+            m3 = MonashDset(m3_raw, horizon=horizon, max_length=max_len, scale=PositiveZeroOneLog())
             all_m3s.append(m3)
         all_dsets += all_m3s
 
@@ -446,9 +414,7 @@ def load_monash_dsets(root_dir, max_len, include=["all"]):
             ("yearly", 6),
         ]:
             m1_raw = TSF_Data(f"m1_{freq}_dataset", root_dir=root_dir)
-            m1 = MonashDset(
-                m1_raw, horizon=horizon, max_length=max_len, scale=PositiveZeroOneLog()
-            )
+            m1 = MonashDset(m1_raw, horizon=horizon, max_length=max_len, scale=PositiveZeroOneLog())
             all_m1s.append(m1)
         all_dsets += all_m1s
 
@@ -463,9 +429,7 @@ def load_monash_dsets(root_dir, max_len, include=["all"]):
             ("yearly", 6),
         ]:
             m4_raw = TSF_Data(f"m4_{freq}_dataset", root_dir=root_dir)
-            m4 = MonashDset(
-                m4_raw, horizon=horizon, max_length=max_len, scale=PositiveZeroOneLog()
-            )
+            m4 = MonashDset(m4_raw, horizon=horizon, max_length=max_len, scale=PositiveZeroOneLog())
             all_m4s.append(m4)
         all_dsets += all_m4s
 
@@ -480,43 +444,31 @@ def load_monash_dsets(root_dir, max_len, include=["all"]):
     if check("covid"):
         # checked
         covid_raw = TSF_Data("covid_deaths_dataset", root_dir=root_dir)
-        covid = MonashDset(
-            covid_raw, horizon=30, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        covid = MonashDset(covid_raw, horizon=30, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(covid)
 
     if check("fred"):
         # checked
         fred_raw = TSF_Data("fred_md_dataset", root_dir=root_dir)
-        fred = MonashDset(
-            fred_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        fred = MonashDset(fred_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(fred)
 
     if check("hospital"):
         # checked
         hospital_raw = TSF_Data("hospital_dataset", root_dir=root_dir)
-        hospital = MonashDset(
-            hospital_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        hospital = MonashDset(hospital_raw, horizon=12, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(hospital)
 
     if check("traffic"):
         # checked, pushes length limit
         traffic_raw = TSF_Data("traffic_hourly_dataset", root_dir=root_dir)
-        traffic = MonashDset(
-            traffic_raw, horizon=168, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        traffic = MonashDset(traffic_raw, horizon=168, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(traffic)
 
     if check("temperature"):
         # checked, values get a bit extreme in some places
-        temperature_raw = TSF_Data(
-            "temperature_rain_dataset_with_missing_values", root_dir=root_dir
-        )
-        temperature = MonashDset(
-            temperature_raw, horizon=30, max_length=max_len, scale=PositiveZeroOneLog()
-        )
+        temperature_raw = TSF_Data("temperature_rain_dataset_with_missing_values", root_dir=root_dir)
+        temperature = MonashDset(temperature_raw, horizon=30, max_length=max_len, scale=PositiveZeroOneLog())
         all_dsets.append(temperature)
 
     """

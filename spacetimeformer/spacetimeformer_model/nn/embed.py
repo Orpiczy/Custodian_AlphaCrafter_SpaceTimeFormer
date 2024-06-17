@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 
-
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 from .extra_layers import ConvBlock, Flatten
 
@@ -52,9 +51,7 @@ class Embedding(nn.Module):
         elif self.position_emb == "abs":
             # lookup-based learnable pos emb
             assert max_seq_len is not None
-            self.local_emb = nn.Embedding(
-                num_embeddings=max_seq_len, embedding_dim=d_model
-            )
+            self.local_emb = nn.Embedding(num_embeddings=max_seq_len, embedding_dim=d_model)
 
         y_emb_inp_dim = d_y if self.method == "temporal" else 1
         self.val_time_emb = nn.Linear(y_emb_inp_dim + time_dim, d_model)
@@ -68,9 +65,7 @@ class Embedding(nn.Module):
         self.start_token_len = start_token_len
         self.given_emb = nn.Embedding(num_embeddings=2, embedding_dim=d_model)
 
-        self.downsize_convs = nn.ModuleList(
-            [ConvBlock(split_length_into, d_model) for _ in range(downsample_convs)]
-        )
+        self.downsize_convs = nn.ModuleList([ConvBlock(split_length_into, d_model) for _ in range(downsample_convs)])
 
         self.d_model = d_model
         self.null_value = null_value
@@ -119,9 +114,7 @@ class Embedding(nn.Module):
         if self.position_emb == "t2v":
             # first idx of Time2Vec output is unbounded so we drop it to
             # reuse code as a learnable pos embb
-            local_emb = self.local_emb(
-                local_pos.view(1, -1, 1).repeat(bs, 1, 1).float()
-            )[:, :, 1:]
+            local_emb = self.local_emb(local_pos.view(1, -1, 1).repeat(bs, 1, 1).float())[:, :, 1:]
         elif self.position_emb == "abs":
             assert length <= self.max_seq_len
             local_emb = self.local_emb(local_pos.long().view(1, -1).repeat(bs, 1))
@@ -161,14 +154,10 @@ class Embedding(nn.Module):
         batch, length, dy = y.shape
 
         # position emb ("local_emb")
-        local_pos = repeat(
-            torch.arange(length).to(x.device), f"length -> {batch} ({dy} length)"
-        )
+        local_pos = repeat(torch.arange(length).to(x.device), f"length -> {batch} ({dy} length)")
         if self.position_emb == "t2v":
             # periodic pos emb
-            local_emb = self.local_emb(local_pos.float().unsqueeze(-1).float())[
-                :, :, 1:
-            ]
+            local_emb = self.local_emb(local_pos.float().unsqueeze(-1).float())[:, :, 1:]
         elif self.position_emb == "abs":
             # lookup pos emb
             local_emb = self.local_emb(local_pos.long())
@@ -230,9 +219,7 @@ class Embedding(nn.Module):
                 length //= 2
 
         # space embedding
-        var_idx = repeat(
-            torch.arange(dy).long().to(x.device), f"dy -> {batch} (dy {length})"
-        )
+        var_idx = repeat(torch.arange(dy).long().to(x.device), f"dy -> {batch} (dy {length})")
         var_idx_true = var_idx.clone()
         if not self.use_space:
             var_idx = torch.zeros_like(var_idx)

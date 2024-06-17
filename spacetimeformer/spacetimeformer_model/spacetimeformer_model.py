@@ -1,12 +1,12 @@
 from typing import Tuple
 
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
 import torchmetrics
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 
 class Spacetimeformer_Forecaster(stf.Forecaster):

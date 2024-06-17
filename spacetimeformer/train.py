@@ -1,14 +1,14 @@
-from argparse import ArgumentParser
+import os
 import random
 import sys
-import warnings
-import os
 import uuid
+import warnings
+from argparse import ArgumentParser
 
 import pytorch_lightning as pl
 import torch
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 _MODELS = ["spacetimeformer", "mtgnn", "heuristic", "lstm", "lstnet", "linear", "s4"]
 
@@ -40,9 +40,7 @@ def create_parser():
     dset = sys.argv[2]
 
     # Throw error now before we get confusing parser issues
-    assert (
-        model in _MODELS
-    ), f"Unrecognized model (`{model}`). Options include: {_MODELS}"
+    assert model in _MODELS, f"Unrecognized model (`{model}`). Options include: {_MODELS}"
     assert dset in _DSETS, f"Unrecognized dset (`{dset}`). Options include: {_DSETS}"
 
     parser = ArgumentParser()
@@ -107,9 +105,7 @@ def create_parser():
     parser.add_argument("--limit_val_batches", type=float, default=1.0)
     parser.add_argument("--no_earlystopping", action="store_true")
     parser.add_argument("--patience", type=int, default=5)
-    parser.add_argument(
-        "--trials", type=int, default=1, help="How many consecutive trials to run"
-    )
+    parser.add_argument("--trials", type=int, default=1, help="How many consecutive trials to run")
 
     if len(sys.argv) > 3 and sys.argv[3] == "-h":
         parser.print_help()
@@ -195,7 +191,7 @@ def create_model(config):
     elif config.dset == "manual":
         x_dim = len(config.time_features)
         yc_dim = len(config.target_cols)
-        yt_dim = len(config.target_cols) # each target has separate time feature
+        yt_dim = len(config.target_cols)  # each target has separate time feature
 
     assert x_dim is not None
     assert yc_dim is not None
@@ -395,9 +391,7 @@ def create_dset(config):
 
     if config.dset == "metr-la" or config.dset == "pems-bay":
         if config.dset == "pems-bay":
-            assert (
-                "pems_bay" in config.data_path
-            ), "Make sure to switch to the pems-bay file!"
+            assert "pems_bay" in config.data_path, "Make sure to switch to the pems-bay file!"
         data = stf.data.metr_la.METR_LA_Data(config.data_path)
         DATA_MODULE = stf.data.DataModule(
             datasetCls=stf.data.metr_la.METR_LA_Torch,
@@ -473,9 +467,7 @@ def create_dset(config):
         )
     elif config.dset == "copy":
         # set these manually in case the model needs them
-        config.context_points = config.copy_length + int(
-            config.copy_include_lags
-        )  # seq + lags
+        config.context_points = config.copy_length + int(config.copy_include_lags)  # seq + lags
         config.target_points = config.copy_length
         DATA_MODULE = stf.data.DataModule(
             datasetCls=stf.data.copy_task.CopyTaskDset,
@@ -492,9 +484,7 @@ def create_dset(config):
         )
     elif config.dset == "cont_copy":
         # set these manually in case the model needs them
-        config.context_points = config.copy_length + int(
-            config.copy_include_lags
-        )  # seq + lags
+        config.context_points = config.copy_length + int(config.copy_include_lags)  # seq + lags
         config.target_points = config.copy_length
         DATA_MODULE = stf.data.DataModule(
             datasetCls=stf.data.cont_copy_task.ContCopyTaskDset,
@@ -673,8 +663,6 @@ def create_dset(config):
                 val_split=0.2,
                 test_split=0.2,
             )
-
-
 
         DATA_MODULE = stf.data.DataModule(
             datasetCls=stf.data.CSVTorchDset,

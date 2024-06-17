@@ -296,6 +296,7 @@ class Spacetimeformer(nn.Module):
         forecast_out = self.forecaster(dec_out)
         # reconstruction predictions
         recon_out = self.reconstructor(enc_out)
+        
         if self.embed_method == "spatio-temporal":
             # fold flattened spatiotemporal format back into (batch, length, d_yt)
             forecast_out = FoldForPred(forecast_out, dy=self.d_yt)

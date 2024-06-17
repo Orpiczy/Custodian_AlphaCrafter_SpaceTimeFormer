@@ -1,11 +1,11 @@
 import warnings
 
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 from .LSTNet import LSTNet
 
@@ -32,9 +32,7 @@ class LSTNet_Forecaster(stf.Forecaster):
     ):
         if linear_window == 0:
             warnings.warn(f"LSTNet linear window arg set to zero!")
-        assert (
-            d_yc == d_yt
-        ), "LSTNet requires the same number of context and target variables"
+        assert d_yc == d_yt, "LSTNet requires the same number of context and target variables"
 
         super().__init__(
             d_x=d_x,
@@ -89,6 +87,4 @@ class LSTNet_Forecaster(stf.Forecaster):
         parser.add_argument("--CNN_kernel", type=int, default=6)
         parser.add_argument("--skip", type=int, default=24)
         parser.add_argument("--dropout_p", type=float, default=0.2)
-        parser.add_argument(
-            "--output_fun", default=None, choices=[None, "sigmoid", "tanh"]
-        )
+        parser.add_argument("--output_fun", default=None, choices=[None, "sigmoid", "tanh"])

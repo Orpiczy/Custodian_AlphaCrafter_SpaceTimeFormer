@@ -1,9 +1,9 @@
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 
 class Heuristic_Forecaster(stf.Forecaster):
@@ -45,14 +45,9 @@ class Heuristic_Forecaster(stf.Forecaster):
         batch, pred_len, d_yt = y_t.shape
 
         if self.method == "repeat_last":
-            output = (
-                torch.ones_like(y_t).to(y_c.device)
-                * y_c[:, -1, :].unsqueeze(1).detach()
-            )
+            output = torch.ones_like(y_t).to(y_c.device) * y_c[:, -1, :].unsqueeze(1).detach()
         elif self.method == "repeat_mean":
-            output = (
-                torch.ones_like(y_t).to(y_c.device) * y_c.mean(1, keepdim=True).detach()
-            )
+            output = torch.ones_like(y_t).to(y_c.device) * y_c.mean(1, keepdim=True).detach()
 
         # hack to work with lightning optimization w/o learnable params
         # (i'm sure there's a better way to do this...)

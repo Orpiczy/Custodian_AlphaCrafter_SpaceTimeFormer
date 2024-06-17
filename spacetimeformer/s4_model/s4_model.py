@@ -1,11 +1,11 @@
 import warnings
 
-import torch
-from torch import nn
-import torch.nn.functional as F
 import pytorch_lightning as pl
+import torch
+import torch.nn.functional as F
+from torch import nn
 
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
+import external.spacetimeformer.spacetimeformer as stf
 
 from . import s4_standalone
 
@@ -89,11 +89,7 @@ class S4_Forecaster(stf.Forecaster):
         y = torch.cat((y_c, torch.zeros((b, lt, d_yc)).to(dev)), dim=-2)
         y_x = torch.cat((y, x_t2v), dim=-1)
         val_time_emb = self.emb(y_x)
-        given = (
-            torch.cat((torch.ones((b, lc)), torch.zeros((b, lt))), dim=-1)
-            .long()
-            .to(dev)
-        )
+        given = torch.cat((torch.ones((b, lc)), torch.zeros((b, lt))), dim=-1).long().to(dev)
         given_emb = self.given(given)
 
         seq = val_time_emb + given_emb

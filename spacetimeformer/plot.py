@@ -15,7 +15,7 @@ import torch
 import wandb
 from einops import rearrange
 
-from app.src.models.external.spacetimeformer.spacetimeformer.eval_stats import mape
+from external.spacetimeformer.spacetimeformer.eval_stats import mape
 
 
 def _assert_squeeze(x):

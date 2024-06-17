@@ -1,18 +1,17 @@
+import os
 import random
 from typing import List
-import os
-import tqdm
-
-import torch
-from torch.utils.data import Dataset, DataLoader
-import pandas as pd
-import numpy as np
-import pytorch_lightning as pl
-from sklearn.preprocessing import StandardScaler
-
-import app.src.models.external.spacetimeformer.spacetimeformer as stf
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import pytorch_lightning as pl
+import torch
+import tqdm
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader, Dataset
+
+import external.spacetimeformer.spacetimeformer as stf
 
 
 class CSVTimeSeries:
@@ -78,15 +77,12 @@ class CSVTimeSeries:
         # Train/Val/Test Split using holdout approach #
 
         def mask_intervals(mask, intervals, cond):
-            for (interval_low, interval_high) in intervals:
+            for interval_low, interval_high in intervals:
                 if interval_low is None:
                     interval_low = df[self.time_col_name].iloc[0].year
                 if interval_high is None:
                     interval_high = df[self.time_col_name].iloc[-1].year
-                mask[
-                    (df[self.time_col_name] >= interval_low)
-                    & (df[self.time_col_name] <= interval_high)
-                ] = cond
+                mask[(df[self.time_col_name] >= interval_low) & (df[self.time_col_name] <= interval_high)] = cond
             return mask
 
         test_cutoff = len(time_df) - max(round(test_split * len(time_df)), 1)
@@ -135,9 +131,7 @@ class CSVTimeSeries:
 
         self.normalize = normalize
         if normalize:
-            self._scaler = self._scaler.fit(
-                self._train_data[target_cols + self.exo_cols].values
-            )
+            self._scaler = self._scaler.fit(self._train_data[target_cols + self.exo_cols].values)
         self._train_data = self.apply_scaling_df(self._train_data)
         self._val_data = self.apply_scaling_df(self._val_data)
         self._test_data = self.apply_scaling_df(self._test_data)
@@ -176,9 +170,7 @@ class CSVTimeSeries:
         scaled = df.copy(deep=True)
         cols = self.target_cols + self.exo_cols
         dtype = df[cols].values.dtype
-        scaled[cols] = (
-            df[cols].values - self._scaler.mean_.astype(dtype)
-        ) / self._scaler.scale_.astype(dtype)
+        scaled[cols] = (df[cols].values - self._scaler.mean_.astype(dtype)) / self._scaler.scale_.astype(dtype)
         return scaled
 
     def reverse_scaling_df(self, df):
@@ -187,9 +179,7 @@ class CSVTimeSeries:
         scaled = df.copy(deep=True)
         cols = self.target_cols + self.exo_cols
         dtype = df[cols].values.dtype
-        scaled[cols] = (
-            df[cols].values * self._scaler.scale_.astype(dtype)
-        ) + self._scaler.mean_.astype(dtype)
+        scaled[cols] = (df[cols].values * self._scaler.scale_.astype(dtype)) + self._scaler.mean_.astype(dtype)
         return scaled
 
     def reverse_scaling(self, array):
@@ -245,9 +235,7 @@ class CSVTorchDset(Dataset):
             i
             for i in range(
                 0,
-                self.series.length(split)
-                + time_resolution * (-target_points - context_points)
-                + 1,
+                self.series.length(split) + time_resolution * (-target_points - context_points) + 1,
             )
         ]
 
@@ -262,8 +250,7 @@ class CSVTorchDset(Dataset):
         series_slice = self.series.get_slice(
             self.split,
             start=start,
-            stop=start
-            + self.time_resolution * (self.context_points + self.target_points),
+            stop=start + self.time_resolution * (self.context_points + self.target_points),
             skip=self.time_resolution,
         )
         series_slice = series_slice.drop(columns=[self.series.time_col_name])
