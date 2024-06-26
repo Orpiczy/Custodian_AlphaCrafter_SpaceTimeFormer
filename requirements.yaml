@@ -1,0 +1,33 @@
+channels:
+  - defaults
+  - conda-forge
+  
+dependencies:
+  - python=3.10.14
+  
+  - cython>=0.22
+  - numpy>=1.15.4
+  - pandas>=1.0.4
+  - matplotlib>=2.0.0
+  - convertdate>=2.1.2
+  - python-dateutil>=2.8.0
+  - tqdm>=4.36.1
+  - seaborn
+  - chardet
+  - opt_einsum
+
+  - conda-forge::omegaconf
+  - conda-forge::einops
+  - conda-forge::opencv
+  - conda-forge::scikit-learn
+  - conda-forge::netcdf4
+  - conda-forge::pystan
+  - conda-forge::wandb
+  #pystan=2.19.1.1
+  - conda-forge::torchvision
+  - conda-forge::torchmetrics=0.5.1
+  - conda-forge::pytorch-lightning=1.6
+  - conda-forge::performer-pytorch
+  - conda-forge::nystrom-attention
+  - conda-forge::cmdstanpy=0.9.68
+
