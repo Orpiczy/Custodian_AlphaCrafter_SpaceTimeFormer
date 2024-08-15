@@ -27,22 +27,41 @@ class DataModule(pl.LightningDataModule):
             warnings.warn("Overriding val and test dataloaders to use train set!")
         self.overfit = overfit
 
-    def train_dataloader(self, shuffle=True):
-        return self._make_dloader("train", shuffle=shuffle)
+        # # CUSTOM CODE
+        # self.eval_dataset = "test"
+        # self._custom_val_dataloader = None
 
-    def val_dataloader(self, shuffle=False):
-        return self._make_dloader("val", shuffle=shuffle)
+    # def set_eval_dataset(self, eval_dataset: str) -> "DataModule":
+    #     match eval_dataset:
+    #         case "test":
+    #             self.eval_dataset = "test"
+    #         case "val":
+    #             self.eval_dataset = "val"
+    #         case "train":
+    #             self.eval_dataset = "train"
+    #         case _:
+    #             raise ValueError(f"Invalid eval_dataset: {eval_dataset}")
+    #     return self
 
-    def test_dataloader(self, shuffle=False):
-        return self._make_dloader("test", shuffle=shuffle)
+    def train_dataloader(self):
+        return self._make_dloader("train")
 
-    def _make_dloader(self, split, shuffle=False):
-        if self.overfit:
-            split = "train"
-            shuffle = True
+    def val_dataloader(self):
+        return self._make_dloader("val")
+
+
+    def test_dataloader(self):
+        # return self._make_dloader(self.eval_dataset)
+        return self._make_dloader("test")
+
+    def _make_dloader(self, split):
+        # if self.overfit:
+        #     split = "train"
+        #     shuffle = True
+
         return DataLoader(
             self.datasetCls(**self.dataset_kwargs, split=split),
-            shuffle=shuffle,
+            shuffle=False,
             batch_size=self.batch_size,
             num_workers=self.workers,
             collate_fn=self.collate_fn,

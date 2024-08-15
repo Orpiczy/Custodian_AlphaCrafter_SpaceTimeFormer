@@ -22,7 +22,7 @@ dependencies:
   - conda-forge::scikit-learn
   - conda-forge::netcdf4
   - conda-forge::pystan
-  - conda-forge::wandb
+  # - conda-forge::wandb
   #pystan=2.19.1.1
   - conda-forge::torchvision
   - conda-forge::torchmetrics=0.5.1
@@ -31,3 +31,11 @@ dependencies:
   - conda-forge::nystrom-attention
   - conda-forge::cmdstanpy=0.9.68
 
+### APP DEPENDENCIES ###
+  - conda-forge::overrides
+  - conda-forge::statsmodels
+  - conda-forge::tensorflow=2.16.1 # somehow not always includes keras
+  - conda-forge::keras
+  - conda-forge::prettytable
+  - conda-forge::pmdarima 
+  - conda-forge::xgboost

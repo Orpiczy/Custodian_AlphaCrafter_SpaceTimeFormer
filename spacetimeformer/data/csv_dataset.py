@@ -26,7 +26,6 @@ class CSVTimeSeries:
         read_csv_kwargs={},
         val_split: float = 0.15,
         test_split: float = 0.15,
-        normalize: bool = True,
         drop_all_nan: bool = False,
         time_features: List[str] = [
             "year",
@@ -36,7 +35,14 @@ class CSVTimeSeries:
             "hour",
             "minute",
         ],
+        scaler: StandardScaler = None,
     ):
+        """
+        Normalizes the data by default
+        """
+        ### CUSTOM CODE ###
+        self._scaler = scaler
+        ###################
 
         assert data_path is not None or raw_df is not None
 
@@ -47,6 +53,7 @@ class CSVTimeSeries:
                 self.data_path,
                 **read_csv_kwargs,
             )
+        self.raw_df = raw_df
 
         if drop_all_nan:
             raw_df.dropna(axis=0, how="any", inplace=True)
@@ -86,7 +93,8 @@ class CSVTimeSeries:
             return mask
 
         test_cutoff = len(time_df) - max(round(test_split * len(time_df)), 1)
-        val_cutoff = test_cutoff - round(val_split * len(time_df))
+        # -1 becuase it seems that all sets need at least one element
+        val_cutoff = test_cutoff - min(round(val_split * len(time_df)), test_cutoff - 1)
 
         val_interval_low = time_df.iloc[val_cutoff]
         val_interval_high = time_df.iloc[test_cutoff - 1]
@@ -107,8 +115,8 @@ class CSVTimeSeries:
         if (train_mask == False).all():
             print(f"No training data detected for file {data_path}")
 
-        self._train_data = df[train_mask]
-        self._scaler = StandardScaler()
+        # self._train_data = df[train_mask]
+        # self._scaler = StandardScaler()
 
         self.target_cols = target_cols
         for col in remove_target_from_context_cols:
@@ -129,12 +137,14 @@ class CSVTimeSeries:
         else:
             self._test_data = df[test_mask]
 
-        self.normalize = normalize
-        if normalize:
-            self._scaler = self._scaler.fit(self._train_data[target_cols + self.exo_cols].values)
-        self._train_data = self.apply_scaling_df(self._train_data)
-        self._val_data = self.apply_scaling_df(self._val_data)
-        self._test_data = self.apply_scaling_df(self._test_data)
+        # we always normalize the data
+        # self.normalize = True
+        # if normalize:
+        #     self._scaler = self._scaler.fit(self._train_data[target_cols + self.exo_cols].values)
+        cols = self.target_cols + self.exo_cols
+        self._train_data = self._scaler.apply_scaling_df(self._train_data, cols)
+        self._val_data = self._scaler.apply_scaling_df(self._val_data, cols)
+        self._test_data = self._scaler.apply_scaling_df(self._test_data, cols)
 
     def make_hists(self):
         for col in self.target_cols + self.exo_cols:
@@ -158,38 +168,38 @@ class CSVTimeSeries:
         else:
             return self.test_data.iloc[start:stop:skip]
 
-    def apply_scaling(self, array):
-        if not self.normalize:
-            return array
-        dim = array.shape[-1]
-        return (array - self._scaler.mean_[:dim]) / self._scaler.scale_[:dim]
+    # def apply_scaling(self, array):
+    #     if not self.normalize:
+    #         return array
+    #     dim = array.shape[-1]
+    #     return (array - self._scaler.mean_[:dim]) / self._scaler.scale_[:dim]
 
-    def apply_scaling_df(self, df):
-        if not self.normalize:
-            return df
-        scaled = df.copy(deep=True)
-        cols = self.target_cols + self.exo_cols
-        dtype = df[cols].values.dtype
-        scaled[cols] = (df[cols].values - self._scaler.mean_.astype(dtype)) / self._scaler.scale_.astype(dtype)
-        return scaled
+    # def apply_scaling_df(self, df):
+    #     if not self.normalize:
+    #         return df
+    #     scaled = df.copy(deep=True)
+    #     cols = self.target_cols + self.exo_cols
+    #     dtype = df[cols].values.dtype
+    #     scaled[cols] = (df[cols].values - self._scaler.mean_.astype(dtype)) / self._scaler.scale_.astype(dtype)
+    #     return scaled
 
-    def reverse_scaling_df(self, df):
-        if not self.normalize:
-            return df
-        scaled = df.copy(deep=True)
-        cols = self.target_cols + self.exo_cols
-        dtype = df[cols].values.dtype
-        scaled[cols] = (df[cols].values * self._scaler.scale_.astype(dtype)) + self._scaler.mean_.astype(dtype)
-        return scaled
+    # def reverse_scaling_df(self, df):
+    #     if not self.normalize:
+    #         return df
+    #     scaled = df.copy(deep=True)
+    #     cols = self.target_cols + self.exo_cols
+    #     dtype = df[cols].values.dtype
+    #     scaled[cols] = (df[cols].values * self._scaler.scale_.astype(dtype)) + self._scaler.mean_.astype(dtype)
+    #     return scaled
 
-    def reverse_scaling(self, array):
-        if not self.normalize:
-            return array
-        # self._scaler is fit for target_cols + exo_cols
-        # if the array dim is less than this length we start
-        # slicing from the target cols
-        dim = array.shape[-1]
-        return (array * self._scaler.scale_[:dim]) + self._scaler.mean_[:dim]
+    # def reverse_scaling(self, array):
+    #     if not self.normalize:
+    #         return array
+    #     # self._scaler is fit for target_cols + exo_cols
+    #     # if the array dim is less than this length we start
+    #     # slicing from the target cols
+    #     dim = array.shape[-1]
+    #     return (array * self._scaler.scale_[:dim]) + self._scaler.mean_[:dim]
 
     @property
     def train_data(self):
