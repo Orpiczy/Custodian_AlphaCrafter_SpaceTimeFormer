@@ -96,7 +96,7 @@ class Forecaster(pl.LightningModule, ABC):
             den = abs(preds.detach()) + abs(true) + 1e-5
             loss = 100.0 * (mask * (num / den)).sum() / max(mask.sum(), 1)
         elif self.loss == "mse_with_sign_penalty":
-            sign_penalty = ((torch.sign(true) != torch.sign(preds)) & (mask > 0)).float().mean() * 100
+            sign_penalty = ((torch.sign(true) != torch.sign(preds)) & (mask > 0)).float().mean()
             mse = (mask * (true - preds)).square().sum() / max(mask.sum(), 1)
             loss = sign_penalty + mse
         elif self.loss == "sign_penalty":

@@ -14,6 +14,8 @@ class DataModule(pl.LightningDataModule):
         workers: int,
         collate_fn=None,
         overfit: bool = False,
+        pin_memory: bool = True,
+
     ):
         super().__init__()
         self.datasetCls = datasetCls
@@ -26,6 +28,7 @@ class DataModule(pl.LightningDataModule):
         if overfit:
             warnings.warn("Overriding val and test dataloaders to use train set!")
         self.overfit = overfit
+        self.pin_memory = pin_memory
 
         # # CUSTOM CODE
         # self.eval_dataset = "test"
@@ -49,7 +52,6 @@ class DataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return self._make_dloader("val")
 
-
     def test_dataloader(self):
         # return self._make_dloader(self.eval_dataset)
         return self._make_dloader("test")
@@ -65,6 +67,7 @@ class DataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.workers,
             collate_fn=self.collate_fn,
+            pin_memory=self.pin_memory,
         )
 
     @classmethod
