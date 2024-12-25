@@ -45,5 +45,10 @@ checkpoints/
 # vim
 *.swp
 
+
+# CUSTOM
 .vscode
 *.csv
+*.pkl
+*.png
+*.pkl
